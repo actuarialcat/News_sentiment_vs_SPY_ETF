@@ -164,10 +164,10 @@ def generate_date_series(st_year, st_month, st_day, en_year, en_month, en_day):
 ###################################################
 # Control Functions
 
-def extract_year(year):
+def extract_year(year, end_month = 12):
     """Extract data within a year, generate csv file for each month"""
 
-    for i in range(12):
+    for i in range(end_month + 1):
         df_web = extract_month(year, i + 1)
         
 
@@ -244,7 +244,7 @@ if ("session_requests" not in globals()):
     
 #%% Scrape all data
 
-extract_year(2020)
+extract_year(2020, 9)
 
 
 
