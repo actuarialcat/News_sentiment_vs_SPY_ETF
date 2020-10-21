@@ -7,7 +7,7 @@ Created on Wed Oct 21 18:41:47 2020
 """
 
 import requests
-from lxml import html
+#from lxml import html
 from bs4 import BeautifulSoup
 
 import datetime
