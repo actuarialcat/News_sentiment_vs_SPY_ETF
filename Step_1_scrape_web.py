@@ -170,12 +170,10 @@ def extract_year(year):
     for i in range(12):
         df_web = extract_month(year, i + 1)
         
-        filename = OUTPUT_FILENAME_PREFIX + str(i + 1).zfill(2) + ".csv"
-        output_cvs(df_web, filename)
 
 
 def extract_month(year, month):
-    """Extract data within a month"""
+    """Extract data within a month, and output csv"""
     
     # Initialize dataframe
     df_web = pd.DataFrame()
@@ -183,11 +181,17 @@ def extract_month(year, month):
     date_series = generate_date_series(year, month, 1, year, month + 1, 1) 
     
     # Loop through all days
-    for date in range(date_series):
+    for date in date_series:
         df_web_new = extract_one_day(session_requests, date)
         
         df_web = df_web.append(df_web_new, ignore_index = True, sort=False)
         
+        print("Completed: " + date)
+    
+    # output csv file
+    filename = OUTPUT_FILENAME_PREFIX + str(month).zfill(2) + ".csv"
+    output_cvs(df_web, filename)
+    
     return df_web
 
 
@@ -247,8 +251,6 @@ extract_year(2020)
 #%% Test month
     
 df_web = extract_month(2020, 9)
-
-output_cvs(df_web, "web_data_09.csv")
 
 
 #%% Test day
