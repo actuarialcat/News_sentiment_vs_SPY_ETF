@@ -15,7 +15,7 @@ from sklearn import metrics
 ###################################################
 # Global Param
 
-OUTPUT_PATH = ""
+OUTPUT_PATH = "web_data/"
 OUTPUT_FILENAME_PREFIX = "web_data_"
 
 STOCK_DATA_PATH = ""

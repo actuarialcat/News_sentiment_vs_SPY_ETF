@@ -22,8 +22,10 @@ WEBSITE_URL = "https://www.reuters.com/finance"
 
 CLOSEST_TIME = "120000"       # hhmmss
 
-OUTPUT_PATH = ""
+OUTPUT_PATH = "web_data/"
 OUTPUT_FILENAME_PREFIX = "web_data_"
+
+DEBUG_VARIABLES = True
 
 
 
@@ -50,7 +52,7 @@ def find_closest_url(session_requests, date, time):
     url_api = ARCHIVE_API_URL + "url=" + WEBSITE_URL + "&timestamp=" + date + time
 
     # retrieve API JSON output
-    result = session_requests.get(url_api, timeout = 10).json()
+    result = session_requests.get(url_api, timeout = 100).json()
     
     # extract the URL to target website
     archive_web_url = result["archived_snapshots"]["closest"]["url"]
@@ -63,7 +65,7 @@ def find_closest_url(session_requests, date, time):
 def scrape_html(session_requests, url):
     """Input session and URL, return scaped html data"""
     
-    result = session_requests.get(url, timeout = 10)
+    result = session_requests.get(url, timeout = 100)
     soup = BeautifulSoup(result.text, "lxml")
     
     return soup
@@ -90,8 +92,10 @@ def extract_details(soup):
 
     feature_title = [""] * 3
     for i in range(3):
-        feature_title[i] = s_feature_content[i].find("", {"class": "story-title"}).get_text().strip()
-    
+        try:
+            feature_title[i] = s_feature_content[i].find("", {"class": "story-title"}).get_text().strip()
+        except IndexError:
+            feature_title[i] = ""
     
     # Video x3
     s_video = soup.find("section", {"class": "module mod-video mod-video-dark mod-video-horizontal"})
@@ -99,8 +103,10 @@ def extract_details(soup):
 
     video_title = [""] * 3
     for i in range(3):
-        video_title[i] = s_video_content[i].find("h3", {"class": "video-heading"}).a.get_text().strip()
-    
+        try:
+            video_title[i] = s_video_content[i].find("h3", {"class": "video-heading"}).a.get_text().strip()
+        except IndexError:
+            video_title[i] = ""
     
     # Stories x6
     s_stories = soup.find_all("div", {"class": "news-headline-list"})
@@ -109,8 +115,12 @@ def extract_details(soup):
     stories_title = [""] * 6
     stories_content = [""] * 6
     for i in range(6):
-        stories_title[i] = s_stories_content[i].find("", {"class": "story-title"}).get_text().strip()
-        stories_content[i] = s_stories_content[i].p.get_text().strip()
+        try:
+            stories_title[i] = s_stories_content[i].find("", {"class": "story-title"}).get_text().strip()
+            stories_content[i] = s_stories_content[i].p.get_text().strip()
+        except IndexError:
+            stories_title[i] = ""
+            stories_content[i] = ""
 
 
     # make dataframe
@@ -164,11 +174,11 @@ def generate_date_series(st_year, st_month, st_day, en_year, en_month, en_day):
 ###################################################
 # Control Functions
 
-def extract_year(year, end_month = 12):
+def extract_year(year, start_month = 1, end_month = 12):
     """Extract data within a year, generate csv file for each month"""
 
-    for i in range(end_month + 1):
-        df_web = extract_month(year, i + 1)
+    for i in range(start_month, end_month + 1):
+        df_web = extract_month(year, i)
         
 
 
@@ -203,9 +213,28 @@ def extract_one_day(session_requests, date):
     time = CLOSEST_TIME       # hhmmss
     
     # Extract HTML data
-    first_url, timestamp = find_closest_url(session_requests, date, time)
+    trial = 0
+    max_trial = 5
+    trial_done = False
     
+    while (trial < max_trial and not trial_done):
+        try:
+            first_url, timestamp = find_closest_url(session_requests, date, time)
+            trial_done = True
+        except:
+            print("Conenction trail " + str(trial + 1) + " failed")
+            trial = trial + 1
+    
+    if (trial_done == False):
+        raise Exception("No website found, check connection")
+ 
     soup = scrape_html(session_requests, first_url)
+    
+    # Debug
+    if (DEBUG_VARIABLES):
+        global debug_url, debug_soup
+        debug_url = first_url
+        debug_soup = soup
 
     # Extract text data from HTML
     df_web_content = extract_details(soup)
@@ -227,6 +256,8 @@ def output_cvs(df, filename):
     
     full_filename = Path(OUTPUT_PATH + filename) 
     df.to_csv(full_filename)
+    
+    print("Outputed file: " + filename)
 
 
 
@@ -241,7 +272,7 @@ if ("session_requests" not in globals()):
     
 #%% Scrape all data
 
-extract_year(2020, 9)
+extract_year(2020, 1, 9)
 extract_year(2019)
 extract_year(2018)
 extract_year(2017)
