@@ -9,6 +9,8 @@ Created on Thu Oct 22 11:26:26 2020
 import pandas as pd 
 from textblob import TextBlob
 
+from sklearn.ensemble import RandomForestClassifier
+from sklearn import metrics
 
 ###################################################
 # Global Param
@@ -120,8 +122,31 @@ def make_sentiment_features(df):
 ###################################################
 # Machine learning functions
 
-#def 
+def ml_random_forest(df):
+    """Random forest model"""
+    
+    # Define train / test data set
+    x_train = df.iloc[:, 1:41]         # Features
+    x_test = 0
+    
+    y_train = df.iloc[:, 41:42]         # Labels
+    y_test = 0
+    
+    
+    # Define model parameters
+    rf = RandomForestClassifier(
+            n_estimators = 100      # number of trees
+        )
+    
+    # Train model
+    rf.fit(x_train, y_train)
 
+    # Predict on test set
+    y_pred = rf.predict(x_test)
+
+    print("Accuracy:", metrics.accuracy_score(y_test, y_pred))
+
+    return rf
 
 
 
@@ -129,6 +154,7 @@ def make_sentiment_features(df):
 #%% ###################################################
 # Main
 
+#Load data
 df = concat_text_data()
 
 
@@ -137,10 +163,12 @@ df = concat_text_data()
 valid_df(df)
 
 
-#%% data analytics
+#%% text analytics
 
 df_feature = make_sentiment_features(df)
 
+
+#%% text analytics
 
 
 

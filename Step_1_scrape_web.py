@@ -203,10 +203,7 @@ def extract_one_day(session_requests, date):
     time = CLOSEST_TIME       # hhmmss
     
     # Extract HTML data
-    cloest_web = find_closest_url(session_requests, date, time)
-    
-    first_url = cloest_web[0]
-    timestamp = cloest_web[1]
+    first_url, timestamp = find_closest_url(session_requests, date, time)
     
     soup = scrape_html(session_requests, first_url)
 
