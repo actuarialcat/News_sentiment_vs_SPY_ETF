@@ -29,6 +29,8 @@ OUTPUT_FILENAME_PREFIX = "web_data_"
 
 STOCK_DATA_PATH = "SPY.csv"
 
+GLOBAL_MODEL_VARIABLE = True    # Save model training variable to global envirnoment
+
 
 ###################################################
 # Load data functions
@@ -214,20 +216,23 @@ def make_sentiment_features_NLTK(df):
 ###################################################
 # Machine learning functions
 
-def ml_random_forest(df_all, num_of_features):
+def ml_random_forest(df_x, df_y):
     """Random forest model"""
     
-    test_date = datetime.datetime(2020, 4, 1)
+    # Global variables
+    if (GLOBAL_MODEL_VARIABLE):
+        global x_train, x_test, y_train, y_test
+        global y_pred_train, y_pred
+    
+    # Training and test set split
+    test_date = datetime.datetime(2020, 6, 1)
 
     # Define train / test data set
-    x_train = df_all[df_all.index < test_date].iloc[:, 0:num_of_features]         # Features
-    x_test = df_all[df_all.index >= test_date].iloc[:, 0:num_of_features]
+    x_train = df_x[df_x.index < test_date]         # Features
+    x_test = df_x[df_x.index >= test_date]
     
-    #y_train = df_all[df_all.index < test_date]["direction_up_next_1"]        # Labels
-    #y_test = df_all[df_all.index >= test_date]["direction_up_next_1"]
-    
-    y_train = df_all[df_all.index < test_date]["volume_large_next_1"]        # Labels
-    y_test = df_all[df_all.index >= test_date]["volume_large_next_1"]
+    y_train = df_y[df_y.index < test_date]       # Labels
+    y_test = df_y[df_y.index >= test_date]
     
 
     # Define model parameters
@@ -243,7 +248,7 @@ def ml_random_forest(df_all, num_of_features):
         "min_impurity_decrease": [10 ** (i / 5.0) for i in range(-10, -26, -1)]
     }
     grid_search = GridSearchCV(estimator = rf, param_grid = param_grid, 
-                              cv = 5, n_jobs = -1, verbose = 5)
+                              cv = 5, n_jobs = -1, verbose = 10)
     
     # CV and model fit
     grid_search.fit(x_train, y_train)
@@ -301,7 +306,7 @@ def plot_feature_important(model, features_name):
 
 # Text data
 df = concat_text_data()             # Load
-df = validate_text_data(df)                   # validate
+df = validate_text_data(df)         # validate
 change_text_date_format(df)
 
 # Stock data
@@ -314,31 +319,51 @@ pre_process_stock_data(df_spy)      # Pre-process
 df_feature_textblob_sentiment = make_sentiment_features_textblob(df)
 
 
-#%% random forest model 1, predicting volume
-
-df_all_1 = df_feature_textblob_sentiment.set_index('date').join(df_spy.set_index('date'), how = "inner")
-best_rf, grid_search, features_name = ml_random_forest(df_all_1, 40)
-
-
-#%% model 1 summary
-
-df_importance = plot_feature_important(best_rf, features_name)
-
-
 #%% text analytics, NLTK sentiment
 
 df_feature_NLTK_sentiment = make_sentiment_features_NLTK(df)
 
 
-#%% random forest model 2, predicting volume
+#%% random forest model 1, TextBlob predict volume
+
+df_all_1 = df_feature_textblob_sentiment.set_index('date').join(df_spy.set_index('date'), how = "inner")
+
+best_rf, grid_search, features_name = ml_random_forest(
+    df_all_1.iloc[:, 0:40], 
+    df_all_1["volume_large_next_1"]      # ["direction_up_next_1"]
+)
+
+
+
+#%% random forest model 2, NLTK predict volume
 
 df_all_2 = df_feature_NLTK_sentiment.set_index('date').join(df_spy.set_index('date'), how = "inner")
-best_rf, grid_search, features_name = ml_random_forest(df_all_2, 20)
+
+best_rf, grid_search, features_name = ml_random_forest(
+    df_all_2.iloc[:, 0:20], 
+    df_all_2["volume_large_next_1"]
+)
 
 
-#%% model 1 summary
+
+#%% random forest model 3, NLTK content only predicting volume
+
+df_all_3 = df_feature_NLTK_sentiment.set_index('date').join(df_spy.set_index('date'), how = "inner")
+
+best_rf, grid_search, features_name = ml_random_forest(
+    df_all_3.iloc[:, [1, 14, 15, 16, 17 ,18 ,19]], 
+    df_all_3["volume_large_next_1"]
+)
+
+
+
+#%% model summary
 
 df_importance = plot_feature_important(best_rf, features_name)
+print(df_importance)
+
+
+#%% 
 
 
 
@@ -350,4 +375,37 @@ df_importance = plot_feature_important(best_rf, features_name)
 
 
 
+
+
+
+
+
+
+
+
+#%% Testing Only (More confident cutoff)
+
+# =============================================================================
+# def prob_cut_off(x, low_cut, up_cut):
+#     if (x < low_cut):
+#         return False, True            # False
+#     elif (x > up_cut):
+#         return True, True            # True
+#     else:
+#         return True, False            # No conclusion
+# 
+# 
+# df_pred_prob = pd.DataFrame(best_rf.predict_proba(x_test), columns = ["F_prob", "T_prob"])
+# 
+# result = df_pred_prob["F_prob"].apply(lambda x: prob_cut_off(x, 0.4, 0.6))
+# df_pred_prob["result"] = result.apply(lambda x: x[0])
+# df_pred_prob["has_result"] = result.apply(lambda x: x[1])
+# 
+# df_pred_prob["has_result"].mean()
+# 
+# a = df_pred_prob["has_result"]
+# 
+# metrics.confusion_matrix(np.array(y_test)[a], np.array(y_pred)[a])
+# metrics.accuracy_score(np.array(y_test)[a], np.array(y_pred)[a])
+# =============================================================================
 
