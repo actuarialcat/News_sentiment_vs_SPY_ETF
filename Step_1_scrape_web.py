@@ -145,7 +145,7 @@ def extract_details(soup):
         "stories_content_3": stories_content[3],
         "stories_content_4": stories_content[4],
         "stories_content_5": stories_content[5],
-        })
+    })
     
     return df_web_content
 
@@ -178,7 +178,7 @@ def extract_year(year, start_month = 1, end_month = 12):
     """Extract data within a year, generate csv file for each month"""
 
     for i in range(start_month, end_month + 1):
-        df_web = extract_month(year, i)
+         extract_month(year, i)
         
 
 

@@ -7,12 +7,19 @@ Created on Thu Oct 22 11:26:26 2020
 """
 
 import pandas as pd 
+import numpy as np
+import matplotlib.pyplot as plt
+
 from textblob import TextBlob
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
 
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import GridSearchCV
 from sklearn import metrics
 
 import datetime
+
+
 
 ###################################################
 # Global Param
@@ -38,24 +45,28 @@ def read_data_month(year, month):
 def concat_text_data():
     """concat CSV file into single dataframe"""
     
+    # Parameters
+    st_year = 2018
+    st_month = 10
+    en_year = 2020
+    en_month = 9
+    
     # Initialize dataframe
     df = pd.DataFrame()
     
-    #2018
-    year = 2018
-    for month in range (10, 12 + 1):            
-            df = df.append(read_data_month(year, month), ignore_index = True, sort=False)      
+    # first year
+    for month in range (st_month, 12 + 1):            
+            df = df.append(read_data_month(st_year, month), ignore_index = True, sort=False)      
     
     # Loop through all files
-    for year in range(2019, 2019 + 1):
+    for year in range(st_year + 1, en_year):
         for month in range (1, 12 + 1):            
             df = df.append(read_data_month(year, month), ignore_index = True, sort=False)
 
-    #2020
-    year = 2020
-    for month in range (1, 9 + 1):            
-            df = df.append(read_data_month(year, month), ignore_index = True, sort=False)              
-
+    # last year
+    for month in range (1, en_month + 1):            
+            df = df.append(read_data_month(en_year, month), ignore_index = True, sort=False)   
+            
     return df
 
 
@@ -73,6 +84,13 @@ def read_stock_data():
 
 
 
+def change_text_date_format(df):
+    "Change text date format"
+    
+    df["date"] = df["date"].apply(string_to_date_text)
+    
+    
+
 ###################################################
 # Data validation functions
     
@@ -89,12 +107,15 @@ def validate_record(row):
     
 
 
-def valid_df(df):
-    """validate the whole dataframe"""
+def validate_text_data(df):
+    """validate the whole text dataframe"""
     
-    valid_df = df.apply(validate_record, axis=1)
+    valid_df_index = df.apply(validate_record, axis=1)
+    valid_df = df[valid_df_index]
     
-    return all(valid_df)
+    print(str(len(df) - len(valid_df)) + " rows of invalid data removed")
+    
+    return valid_df
 
 
 
@@ -133,8 +154,8 @@ def pre_process_stock_data(df_spy):
 ###################################################
 # Text analytics functions
     
-def text_sentiment(inp):
-    """Extract sentiment score from text"""
+def text_sentiment_textblob(inp):
+    """Extract sentiment score from text using TextBlob"""
     
     str_inp = str(inp)
     s = TextBlob(str_inp).sentiment
@@ -146,11 +167,11 @@ def text_sentiment(inp):
 
 
 
-def make_sentiment_features(df):
-    """Make a dataframe including text sentiment features"""
+def make_sentiment_features_textblob(df):
+    """Make a dataframe including text sentiment features using TextBlob"""
     
     df_time = df.iloc[:, 0:1]
-    df_sen = df.iloc[:, 2:22].applymap(text_sentiment)
+    df_sen = df.iloc[:, 2:22].applymap(text_sentiment_textblob)
 
     df_pol = df_sen.applymap(lambda x: x[0])
     df_sub = df_sen.applymap(lambda x: x[1])
@@ -159,8 +180,32 @@ def make_sentiment_features(df):
     df_feature = pd.concat([df_pol.add_suffix('_pol'), df_sub.add_suffix('_sub')], axis=1, sort=False)
     df_feature = pd.concat([df_time, df_feature], axis=1, sort=False)
 
-    # Change date format
-    df_feature["date"] = df_feature["date"].apply(string_to_date_text)
+    return df_feature
+
+
+
+def text_sentiment_NLTK(inp, sid):
+    """Extract sentiment score from text using NLTK Vader"""
+    
+    if (isinstance(inp, str)):
+        x = sid.polarity_scores(inp)
+        return x["compound"]
+    
+    else:
+        return 0        # for nan data
+        
+
+
+def make_sentiment_features_NLTK(df):
+    """Make a dataframe including text sentiment features using NLTK Vader"""
+    
+    sid = SentimentIntensityAnalyzer()
+    
+    df_time = df.iloc[:, 0:1]
+    df_sen = df.iloc[:, 2:22].applymap(lambda x: text_sentiment_NLTK(x, sid))
+    
+    # Concat to single data frame
+    df_feature = pd.concat([df_time, df_sen], axis=1, sort=False)
 
     return df_feature
 
@@ -169,14 +214,14 @@ def make_sentiment_features(df):
 ###################################################
 # Machine learning functions
 
-def ml_random_forest(df_all):
+def ml_random_forest(df_all, num_of_features):
     """Random forest model"""
     
     test_date = datetime.datetime(2020, 4, 1)
-    
+
     # Define train / test data set
-    x_train = df_all[df_all.index < test_date].iloc[:, 0:40]         # Features
-    x_test = df_all[df_all.index >= test_date].iloc[:, 0:40]
+    x_train = df_all[df_all.index < test_date].iloc[:, 0:num_of_features]         # Features
+    x_test = df_all[df_all.index >= test_date].iloc[:, 0:num_of_features]
     
     #y_train = df_all[df_all.index < test_date]["direction_up_next_1"]        # Labels
     #y_test = df_all[df_all.index >= test_date]["direction_up_next_1"]
@@ -184,65 +229,116 @@ def ml_random_forest(df_all):
     y_train = df_all[df_all.index < test_date]["volume_large_next_1"]        # Labels
     y_test = df_all[df_all.index >= test_date]["volume_large_next_1"]
     
+
     # Define model parameters
     rf = RandomForestClassifier(
             n_estimators = 1000,        # number of trees
             max_features = "sqrt",
-            min_impurity_decrease = 0.005
+            # min_impurity_decrease = 0.007,    # Decieded by CV
+            n_jobs = -1
         )
     
-    # Train model
-    rf.fit(x_train, y_train)
+    # Cross validation parameters for minimum split cost
+    param_grid = {
+        "min_impurity_decrease": [10 ** (i / 5.0) for i in range(-10, -26, -1)]
+    }
+    grid_search = GridSearchCV(estimator = rf, param_grid = param_grid, 
+                              cv = 5, n_jobs = -1, verbose = 5)
+    
+    # CV and model fit
+    grid_search.fit(x_train, y_train)
+    
+    # Best fit, model on whole data sets
+    best_rf = grid_search.best_estimator_
     
     # Training error
-    y_pred_train = rf.predict(x_train)
-    
+    y_pred_train = best_rf.predict(x_train)
     print("Train Accuracy:", metrics.accuracy_score(y_train, y_pred_train))
-
+    
     # Predict on test set
-    y_pred = rf.predict(x_test)
-
+    y_pred = best_rf.predict(x_test)
     print("Test Accuracy:", metrics.accuracy_score(y_test, y_pred))
 
-    return rf
+    # Feature names
+    features_name = list(x_train.columns.values)
+
+    return best_rf, grid_search, features_name
 
 
+
+def plot_feature_important(model, features_name):
+    """Show the relative importance of each feature"""
+    
+    importance = model.feature_importances_
+    sort_index = np.argsort(importance)[::-1]
+    
+    xlabels = np.array(features_name)
+    
+    # Plot
+    plt.figure()
+    plt.title("Feature importances")
+    plt.bar(
+        range(len(importance)), 
+        height = importance[sort_index],
+        color="r", 
+        align="center"
+    )
+    # plt.xticks(range(len(importance)), xlabels[sort_index])
+    plt.show()
+    
+    
+    # Table
+    df = pd.DataFrame(data = {
+        "features": xlabels[sort_index], 
+        "importance": importance[sort_index], 
+    })
+
+    return df
 
 
 #%% ###################################################
 # Main
 
-#Load text data
-df = concat_text_data()
+# Text data
+df = concat_text_data()             # Load
+df = validate_text_data(df)                   # validate
+change_text_date_format(df)
+
+# Stock data
+df_spy = read_stock_data()          # Load
+pre_process_stock_data(df_spy)      # Pre-process
 
 
-#%% Load stock data
+#%% text analytics, TextBlob sentiment
 
-df_spy = read_stock_data()
-pre_process_stock_data(df_spy)
-
-
-#%% validate text data
-
-valid_df(df)
+df_feature_textblob_sentiment = make_sentiment_features_textblob(df)
 
 
-#%% text analytics
+#%% random forest model 1, predicting volume
 
-df_feature = make_sentiment_features(df)
-
-
-#%% merge dataframe
-
-df_all = df_feature.set_index('date').join(df_spy.set_index('date'), how = "inner")
+df_all_1 = df_feature_textblob_sentiment.set_index('date').join(df_spy.set_index('date'), how = "inner")
+best_rf, grid_search, features_name = ml_random_forest(df_all_1, 40)
 
 
-#%% random forest model
+#%% model 1 summary
+
+df_importance = plot_feature_important(best_rf, features_name)
 
 
-rf = ml_random_forest(df_all)
+#%% text analytics, NLTK sentiment
+
+df_feature_NLTK_sentiment = make_sentiment_features_NLTK(df)
 
 
+#%% random forest model 2, predicting volume
+
+df_all_2 = df_feature_NLTK_sentiment.set_index('date').join(df_spy.set_index('date'), how = "inner")
+best_rf, grid_search, features_name = ml_random_forest(df_all_2, 20)
+
+
+#%% model 1 summary
+
+df_importance = plot_feature_important(best_rf, features_name)
 
 
 
