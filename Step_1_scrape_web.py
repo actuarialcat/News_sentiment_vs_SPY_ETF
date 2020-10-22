@@ -244,10 +244,11 @@ if ("session_requests" not in globals()):
     
 #%% Scrape all data
 
-extract_year(2017)
-extract_year(2018)
-extract_year(2019)
 extract_year(2020, 9)
+extract_year(2019)
+extract_year(2018)
+extract_year(2017)
+
 
 
 #%% Test month
