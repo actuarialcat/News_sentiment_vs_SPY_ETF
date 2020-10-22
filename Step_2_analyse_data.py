@@ -41,12 +41,17 @@ def concat_text_data():
     # Initialize dataframe
     df = pd.DataFrame()
     
+    #2018
+    year = 2018
+    for month in range (10, 12 + 1):            
+            df = df.append(read_data_month(year, month), ignore_index = True, sort=False)      
+    
     # Loop through all files
-    for year in range(2017, 2019 + 1):
+    for year in range(2019, 2019 + 1):
         for month in range (1, 12 + 1):            
             df = df.append(read_data_month(year, month), ignore_index = True, sort=False)
 
-    #last year
+    #2020
     year = 2020
     for month in range (1, 9 + 1):            
             df = df.append(read_data_month(year, month), ignore_index = True, sort=False)              
@@ -119,7 +124,9 @@ def pre_process_stock_data(df_spy):
     df_spy["ret_next_1"] = (df_spy["adj_close_next_1"] / df_spy["Adj Close"]) - 1
     df_spy["direction_up_next_1"] = df_spy["ret_next_1"].apply(lambda x: x > 0)
     
-    
+    # calcuate volume
+    volume_cutoff = 75000000
+    df_spy["volume_large_next_1"] = df_spy["volume_next_1"].apply(lambda x: x > volume_cutoff)
 
 
 
@@ -165,28 +172,37 @@ def make_sentiment_features(df):
 def ml_random_forest(df_all):
     """Random forest model"""
     
-    test_date = datetime.datetime(2020, 9, 15)
+    test_date = datetime.datetime(2020, 4, 1)
     
     # Define train / test data set
     x_train = df_all[df_all.index < test_date].iloc[:, 0:40]         # Features
     x_test = df_all[df_all.index >= test_date].iloc[:, 0:40]
     
-    y_train = df_all[df_all.index < test_date]["direction_up_next_1"]        # Labels
-    y_test = df_all[df_all.index >= test_date]["direction_up_next_1"]
+    #y_train = df_all[df_all.index < test_date]["direction_up_next_1"]        # Labels
+    #y_test = df_all[df_all.index >= test_date]["direction_up_next_1"]
     
+    y_train = df_all[df_all.index < test_date]["volume_large_next_1"]        # Labels
+    y_test = df_all[df_all.index >= test_date]["volume_large_next_1"]
     
     # Define model parameters
     rf = RandomForestClassifier(
-            n_estimators = 100      # number of trees
+            n_estimators = 1000,        # number of trees
+            max_features = "sqrt",
+            min_impurity_decrease = 0.005
         )
     
     # Train model
     rf.fit(x_train, y_train)
+    
+    # Training error
+    y_pred_train = rf.predict(x_train)
+    
+    print("Train Accuracy:", metrics.accuracy_score(y_train, y_pred_train))
 
     # Predict on test set
     y_pred = rf.predict(x_test)
 
-    print("Accuracy:", metrics.accuracy_score(y_test, y_pred))
+    print("Test Accuracy:", metrics.accuracy_score(y_test, y_pred))
 
     return rf
 
@@ -214,6 +230,9 @@ valid_df(df)
 #%% text analytics
 
 df_feature = make_sentiment_features(df)
+
+
+#%% merge dataframe
 
 df_all = df_feature.set_index('date').join(df_spy.set_index('date'), how = "inner")
 

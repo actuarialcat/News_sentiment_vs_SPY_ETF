@@ -277,8 +277,7 @@ if ("session_requests" not in globals()):
 
 extract_year(2020, 1, 9)
 extract_year(2019)
-extract_year(2018)
-extract_year(2017)
+extract_year(2018, 10, 12)
 
 
 
