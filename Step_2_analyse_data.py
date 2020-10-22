@@ -61,7 +61,7 @@ def read_stock_data():
 
 
 ###################################################
-# Data validation functons
+# Data validation functions
     
 def validate_record(row):
     """validate the record to ensure data is within expectation"""
@@ -86,8 +86,41 @@ def valid_df(df):
 
 
 ###################################################
-# Data analytics functons
+# Text analytics functions
     
+def text_sentiment(inp):
+    """Extract sentiment score from text"""
+    
+    str_inp = str(inp)
+    s = TextBlob(str_inp).sentiment
+    
+    s_pol = s.polarity      # How positive the text is.
+    s_sub = s.subjectivity  # How subjective the text is.
+        
+    return s_pol, s_sub, str_inp
+
+
+
+def make_sentiment_features(df):
+    """Make a dataframe including text sentiment features"""
+    
+    df_time = df.iloc[:, 0:1]
+    df_sen = df.iloc[:, 2:22].applymap(text_sentiment)
+
+    df_pol = df_sen.applymap(lambda x: x[0])
+    df_sub = df_sen.applymap(lambda x: x[1])
+    
+    df_feature = pd.concat([df_pol.add_suffix('_pol'), df_sub.add_suffix('_sub')], axis=1, sort=False)
+    df_feature = pd.concat([df_time, df_feature], axis=1, sort=False)
+
+    return df_feature
+
+
+
+###################################################
+# Machine learning functions
+
+#def 
 
 
 
@@ -99,10 +132,14 @@ def valid_df(df):
 df = concat_text_data()
 
 
-
 #%% validate data
+
 valid_df(df)
 
+
+#%% data analytics
+
+df_feature = make_sentiment_features(df)
 
 
 

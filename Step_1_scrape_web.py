@@ -244,19 +244,21 @@ if ("session_requests" not in globals()):
     
 #%% Scrape all data
 
+extract_year(2017)
+extract_year(2018)
+extract_year(2019)
 extract_year(2020, 9)
-
 
 
 #%% Test month
     
-df_web = extract_month(2020, 9)
+#df_web = extract_month(2020, 9)
 
 
 #%% Test day
     
-test_date = "20200901"       # yyyymmdd
-test_df_web = extract_one_day(session_requests, test_date)
+#test_date = "20200901"       # yyyymmdd
+#test_df_web = extract_one_day(session_requests, test_date)
 
 
 
