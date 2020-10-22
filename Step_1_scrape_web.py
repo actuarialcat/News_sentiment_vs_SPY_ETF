@@ -25,7 +25,7 @@ CLOSEST_TIME = "120000"       # hhmmss
 OUTPUT_PATH = "web_data/"
 OUTPUT_FILENAME_PREFIX = "web_data_"
 
-DEBUG_VARIABLES = True
+DEBUG_VARIABLES = True      # Save debug variables to global environment
 
 
 
