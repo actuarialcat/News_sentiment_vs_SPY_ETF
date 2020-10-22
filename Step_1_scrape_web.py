@@ -189,7 +189,7 @@ def extract_month(year, month):
         print("Completed: " + date)
     
     # output csv file
-    filename = OUTPUT_FILENAME_PREFIX + str(month).zfill(2) + ".csv"
+    filename = OUTPUT_FILENAME_PREFIX + str(year) + str(month).zfill(2) + ".csv"
     output_cvs(df_web, filename)
     
     return df_web
