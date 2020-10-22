@@ -12,13 +12,15 @@ from textblob import TextBlob
 from sklearn.ensemble import RandomForestClassifier
 from sklearn import metrics
 
+import datetime
+
 ###################################################
 # Global Param
 
 OUTPUT_PATH = "web_data/"
 OUTPUT_FILENAME_PREFIX = "web_data_"
 
-STOCK_DATA_PATH = ""
+STOCK_DATA_PATH = "SPY.csv"
 
 
 ###################################################
@@ -40,13 +42,13 @@ def concat_text_data():
     df = pd.DataFrame()
     
     # Loop through all files
-    #for year in range(2019, 2019 + 1):
-    #    for month in range (1, 12 + 1):            
-    #        df = df.append(read_data_month(year, month), ignore_index = True, sort=False)
+    for year in range(2017, 2019 + 1):
+        for month in range (1, 12 + 1):            
+            df = df.append(read_data_month(year, month), ignore_index = True, sort=False)
 
     #last year
     year = 2020
-    for month in range (9, 9 + 1):            
+    for month in range (1, 9 + 1):            
             df = df.append(read_data_month(year, month), ignore_index = True, sort=False)              
 
     return df
@@ -56,7 +58,11 @@ def concat_text_data():
 def read_stock_data():
     """load stock data"""
     
-    df = pd.read_csv(STOCK_DATA_PATH, index_col = 0)
+    df = pd.read_csv(STOCK_DATA_PATH, index_col = False)
+    
+    # Change date format and col name
+    df.rename({'Date': 'date'}, axis=1, inplace=True)
+    df["date"] = df["date"].apply(string_to_date_SPY)
     
     return df
 
@@ -88,6 +94,36 @@ def valid_df(df):
 
 
 ###################################################
+# Data pre-processing functions
+    
+def string_to_date_SPY(inp):
+    """Convert date format for stock data"""
+    return datetime.datetime.strptime(inp, "%Y-%m-%d")
+
+def string_to_date_text(inp):
+    """Convert date format for text data"""
+    return datetime.datetime.strptime(str(inp), "%Y%m%d")
+
+
+
+###################################################
+# Stock data pre-processing functions
+
+def pre_process_stock_data(df_spy):
+    
+    # lag values
+    df_spy["volume_next_1"] = df_spy["Volume"].shift(periods = -1)
+    df_spy["adj_close_next_1"] = df_spy["Adj Close"].shift(periods = -1)
+    
+    # calcuate returns
+    df_spy["ret_next_1"] = (df_spy["adj_close_next_1"] / df_spy["Adj Close"]) - 1
+    df_spy["direction_up_next_1"] = df_spy["ret_next_1"].apply(lambda x: x > 0)
+    
+    
+
+
+
+###################################################
 # Text analytics functions
     
 def text_sentiment(inp):
@@ -112,8 +148,12 @@ def make_sentiment_features(df):
     df_pol = df_sen.applymap(lambda x: x[0])
     df_sub = df_sen.applymap(lambda x: x[1])
     
+    # Concat to single data frame
     df_feature = pd.concat([df_pol.add_suffix('_pol'), df_sub.add_suffix('_sub')], axis=1, sort=False)
     df_feature = pd.concat([df_time, df_feature], axis=1, sort=False)
+
+    # Change date format
+    df_feature["date"] = df_feature["date"].apply(string_to_date_text)
 
     return df_feature
 
@@ -122,15 +162,17 @@ def make_sentiment_features(df):
 ###################################################
 # Machine learning functions
 
-def ml_random_forest(df):
+def ml_random_forest(df_all):
     """Random forest model"""
     
-    # Define train / test data set
-    x_train = df.iloc[:, 1:41]         # Features
-    x_test = 0
+    test_date = datetime.datetime(2020, 9, 15)
     
-    y_train = df.iloc[:, 41:42]         # Labels
-    y_test = 0
+    # Define train / test data set
+    x_train = df_all[df_all.index < test_date].iloc[:, 0:40]         # Features
+    x_test = df_all[df_all.index >= test_date].iloc[:, 0:40]
+    
+    y_train = df_all[df_all.index < test_date]["direction_up_next_1"]        # Labels
+    y_test = df_all[df_all.index >= test_date]["direction_up_next_1"]
     
     
     # Define model parameters
@@ -154,11 +196,17 @@ def ml_random_forest(df):
 #%% ###################################################
 # Main
 
-#Load data
+#Load text data
 df = concat_text_data()
 
 
-#%% validate data
+#%% Load stock data
+
+df_spy = read_stock_data()
+pre_process_stock_data(df_spy)
+
+
+#%% validate text data
 
 valid_df(df)
 
@@ -167,8 +215,15 @@ valid_df(df)
 
 df_feature = make_sentiment_features(df)
 
+df_all = df_feature.set_index('date').join(df_spy.set_index('date'), how = "inner")
 
-#%% text analytics
+
+#%% random forest model
+
+
+rf = ml_random_forest(df_all)
+
+
 
 
 
