@@ -188,7 +188,10 @@ def extract_month(year, month):
     # Initialize dataframe
     df_web = pd.DataFrame()
     
-    date_series = generate_date_series(year, month, 1, year, month + 1, 1) 
+    if(month == 12):
+        date_series = generate_date_series(year, month, 1, year + 1, 1, 1) 
+    else:
+        date_series = generate_date_series(year, month, 1, year, month + 1, 1) 
     
     # Loop through all days
     for date in date_series:
