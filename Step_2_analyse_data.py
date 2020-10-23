@@ -20,7 +20,6 @@ from sklearn import metrics
 import datetime
 
 
-
 ###################################################
 # Global Param
 
@@ -28,8 +27,6 @@ OUTPUT_PATH = "web_data/"
 OUTPUT_FILENAME_PREFIX = "web_data_"
 
 STOCK_DATA_PATH = "SPY.csv"
-
-GLOBAL_MODEL_VARIABLE = True    # Save model training variable to global envirnoment
 
 
 ###################################################
@@ -219,10 +216,9 @@ def make_sentiment_features_NLTK(df):
 def ml_random_forest(df_x, df_y):
     """Random forest model"""
     
-    # Global variables
-    if (GLOBAL_MODEL_VARIABLE):
-        global x_train, x_test, y_train, y_test
-        global y_pred_train, y_pred
+    # Save model training variable to global envirnoment
+    global x_train, x_test, y_train, y_test
+    global y_pred_train, y_pred
     
     # Training and test set split
     test_date = datetime.datetime(2020, 6, 1)
@@ -328,37 +324,37 @@ df_feature_textblob_sentiment = make_sentiment_features_textblob(df)
 df_feature_NLTK_sentiment = make_sentiment_features_NLTK(df)
 
 
-#%% random forest model 1, TextBlob predict volume
+#%% random forest model 1, TextBlob prediction
 
 df_all_1 = df_feature_textblob_sentiment.set_index('date').join(df_spy.set_index('date'), how = "inner")
 
 best_rf, grid_search, features_name = ml_random_forest(
     df_all_1.iloc[:, 0:40], 
-    df_all_1["volume_large_next_1"]
+    df_all_1["direction_up_next_1"]
 )
 
 # For stock price direction, use ["direction_up_next_1"]
 # For trade volume size, use ["volume_large_next_1"]
 
 
-#%% random forest model 2, NLTK predict volume
+#%% random forest model 2, NLTK prediction
 
 df_all_2 = df_feature_NLTK_sentiment.set_index('date').join(df_spy.set_index('date'), how = "inner")
 
 best_rf, grid_search, features_name = ml_random_forest(
     df_all_2.iloc[:, 0:20], 
-    df_all_2["volume_large_next_1"]
+    df_all_2["direction_up_next_1"]
 )
 
 
 
-#%% random forest model 3, NLTK content only predicting volume
+#%% random forest model 3, NLTK prediction using contents only
 
 df_all_3 = df_feature_NLTK_sentiment.set_index('date').join(df_spy.set_index('date'), how = "inner")
 
 best_rf, grid_search, features_name = ml_random_forest(
     df_all_3.iloc[:, [1, 14, 15, 16, 17 ,18 ,19]], 
-    df_all_3["volume_large_next_1"]
+    df_all_3["direction_up_next_1"]
 )
 
 
@@ -395,7 +391,7 @@ print(df_importance)
 # def prob_cut_off(x, low_cut, up_cut):
 #     if (x < low_cut):
 #         return False, True            # False
-#     elif (x > up_cut):
+#     elif (x >= up_cut):
 #         return True, True            # True
 #     else:
 #         return True, False            # No conclusion
@@ -403,7 +399,7 @@ print(df_importance)
 # 
 # df_pred_prob = pd.DataFrame(best_rf.predict_proba(x_test), columns = ["F_prob", "T_prob"])
 # 
-# result = df_pred_prob["F_prob"].apply(lambda x: prob_cut_off(x, 0.4, 0.6))
+# result = df_pred_prob["F_prob"].apply(lambda x: prob_cut_off(x, 0.7, 0.3))
 # df_pred_prob["result"] = result.apply(lambda x: x[0])
 # df_pred_prob["has_result"] = result.apply(lambda x: x[1])
 # 
@@ -411,7 +407,7 @@ print(df_importance)
 # 
 # a = df_pred_prob["has_result"]
 # 
-# metrics.confusion_matrix(np.array(y_test)[a], np.array(y_pred)[a])
-# metrics.accuracy_score(np.array(y_test)[a], np.array(y_pred)[a])
+# print(metrics.confusion_matrix(np.array(y_test)[a], df_pred_prob["result"][a]))
+# print(metrics.accuracy_score(np.array(y_test)[a], df_pred_prob["result"][a]))
+# 
 # =============================================================================
-
