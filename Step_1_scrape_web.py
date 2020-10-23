@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
+Scrape text data from web and save into CSV files
+
 Created on Wed Oct 21 18:41:47 2020
 
 @author: Jackson
