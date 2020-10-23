@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
+Data pre-processing and fitting random forest models
+
 Created on Thu Oct 22 11:26:26 2020
 
 @author: jackson
