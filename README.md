@@ -27,5 +27,5 @@ A random forest model is fitted to predict the direction of the stock price and 
 
 ## What's More
 
-For more detials, please see the [full article](./Report.pdf).
+For more detials, please see the [full article](./Report_2.pdf).
 
