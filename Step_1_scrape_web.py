@@ -120,7 +120,7 @@ def extract_details(soup):
         try:
             stories_title[i] = s_stories_content[i].find("", {"class": "story-title"}).get_text().strip()
             stories_content[i] = s_stories_content[i].p.get_text().strip()
-        except IndexError:
+        except IndexError:              # Execption thrown when webpage have less than 6 stories
             stories_title[i] = ""
             stories_content[i] = ""
 
