@@ -237,7 +237,7 @@ def ml_random_forest(df_x, df_y):
 
     # Define model parameters
     rf = RandomForestClassifier(
-            n_estimators = 1000,        # number of trees
+            n_estimators = 2000,        # number of trees
             max_features = "sqrt",
             # min_impurity_decrease = 0.007,    # Decieded by CV
             n_jobs = -1
@@ -277,14 +277,17 @@ def plot_feature_important(model, features_name):
     importance = model.feature_importances_
     sort_index = np.argsort(importance)[::-1]
     
+    max_importance = max(importance)
+    relative_importance = importance / max_importance * 100
+    
     xlabels = np.array(features_name)
     
     # Plot
     plt.figure()
-    plt.title("Feature importances")
+    plt.title("Feature Relative Importance")
     plt.bar(
-        range(len(importance)), 
-        height = importance[sort_index],
+        range(len(relative_importance)), 
+        height = relative_importance[sort_index],
         color="r", 
         align="center"
     )
@@ -295,6 +298,7 @@ def plot_feature_important(model, features_name):
     # Table
     df = pd.DataFrame(data = {
         "features": xlabels[sort_index], 
+        "relative_importance": relative_importance[sort_index],
         "importance": importance[sort_index], 
     })
 
@@ -330,9 +334,11 @@ df_all_1 = df_feature_textblob_sentiment.set_index('date').join(df_spy.set_index
 
 best_rf, grid_search, features_name = ml_random_forest(
     df_all_1.iloc[:, 0:40], 
-    df_all_1["volume_large_next_1"]      # ["direction_up_next_1"]
+    df_all_1["volume_large_next_1"]
 )
 
+# For stock price direction, use ["direction_up_next_1"]
+# For trade volume size, use ["volume_large_next_1"]
 
 
 #%% random forest model 2, NLTK predict volume
