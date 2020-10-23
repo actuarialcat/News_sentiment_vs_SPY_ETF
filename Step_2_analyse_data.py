@@ -60,7 +60,7 @@ def concat_text_data():
             df = df.append(read_data_month(st_year, month), ignore_index = True, sort=False)      
     
     # Loop through all files
-    for year in range(st_year + 1, en_year):
+    for year in range (st_year + 1, en_year):
         for month in range (1, 12 + 1):            
             df = df.append(read_data_month(year, month), ignore_index = True, sort=False)
 
@@ -316,31 +316,30 @@ df_spy = read_stock_data()          # Load
 pre_process_stock_data(df_spy)      # Pre-process
 
 
-#%% text analytics, TextBlob sentiment
 
+#%% text analytics, TextBlob sentiment
 df_feature_textblob_sentiment = make_sentiment_features_textblob(df)
 
 
-#%% text analytics, NLTK sentiment
 
+#%% text analytics, NLTK sentiment
 df_feature_NLTK_sentiment = make_sentiment_features_NLTK(df)
 
 
-#%% random forest model 1, TextBlob prediction
 
+#%% random forest model 1, TextBlob prediction
 df_all_1 = df_feature_textblob_sentiment.set_index('date').join(df_spy.set_index('date'), how = "inner")
 
 best_rf, grid_search, features_name = ml_random_forest(
     df_all_1.iloc[:, 0:40], 
     df_all_1["direction_up_next_1"]
 )
-
 # For stock price direction, use ["direction_up_next_1"]
 # For trade volume size, use ["volume_large_next_1"]
 
 
-#%% random forest model 2, NLTK prediction
 
+#%% random forest model 2, NLTK prediction
 df_all_2 = df_feature_NLTK_sentiment.set_index('date').join(df_spy.set_index('date'), how = "inner")
 
 best_rf, grid_search, features_name = ml_random_forest(
@@ -351,7 +350,6 @@ best_rf, grid_search, features_name = ml_random_forest(
 
 
 #%% random forest model 3, NLTK prediction using contents only
-
 df_all_3 = df_feature_NLTK_sentiment.set_index('date').join(df_spy.set_index('date'), how = "inner")
 
 best_rf, grid_search, features_name = ml_random_forest(
@@ -362,28 +360,12 @@ best_rf, grid_search, features_name = ml_random_forest(
 
 
 #%% model summary
-
 df_importance = plot_feature_important(best_rf, features_name)
 print(df_importance)
 
 
+
 #%% 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
