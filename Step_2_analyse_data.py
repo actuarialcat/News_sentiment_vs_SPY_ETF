@@ -273,7 +273,8 @@ def plot_feature_important(model, features_name):
     """Show the relative importance of each feature"""
     
     importance = model.feature_importances_
-    sort_index = np.argsort(importance)[::-1]
+    sort_index_acc = np.argsort(importance)[::1]
+    sort_index_dec = np.argsort(importance)[::-1]
     
     max_importance = max(importance)
     relative_importance = importance / max_importance * 100
@@ -281,23 +282,24 @@ def plot_feature_important(model, features_name):
     xlabels = np.array(features_name)
     
     # Plot
-    plt.figure()
+    plt.figure(figsize=(8, 6))
     plt.title("Feature Relative Importance")
-    plt.bar(
+    plt.barh(
         range(len(relative_importance)), 
-        height = relative_importance[sort_index],
+        width = relative_importance[sort_index_acc],
         color="r", 
         align="center"
     )
-    # plt.xticks(range(len(importance)), xlabels[sort_index])
+    plt.yticks(range(len(importance)), xlabels[sort_index_acc])
+    plt.ylabel("Feature name")
+    plt.xlabel("Relative importance (%)")
     plt.show()
-    
     
     # Table
     df = pd.DataFrame(data = {
-        "features": xlabels[sort_index], 
-        "relative_importance": relative_importance[sort_index],
-        "importance": importance[sort_index], 
+        "features": xlabels[sort_index_dec], 
+        "relative_importance": relative_importance[sort_index_dec],
+        "importance": importance[sort_index_dec], 
     })
 
     return df
