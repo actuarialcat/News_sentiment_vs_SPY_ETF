@@ -222,7 +222,7 @@ def extract_one_day(session_requests, date):
     max_trial = 5
     trial_done = False
     
-    while (trial < max_trial and not trial_done):
+    while (trial < max_trial and not trial_done):           # Retry 5 times if connection problem exist
         try:
             first_url, timestamp = find_closest_url(session_requests, date, time)
             trial_done = True
