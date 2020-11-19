@@ -1,6 +1,6 @@
 # Reuters financial news sentiment vs SPY ETF
 
-This project attempts to predict the performance of SPY ETF using financial news headlines on Reuters webpage on the previous trading day.
+This small project attempts to predict the performance of SPY ETF using financial news headlines on Reuters webpage on the previous trading day.
 
 ## Data
 News headlines between October 2018 and September 2020 are scraped from the Reuters financial news homepage (https://www.reuters.com/finance).
@@ -27,5 +27,5 @@ A random forest model is fitted to predict the direction of the stock price and 
 
 ## What's More
 
-For more detials, please see the [full article](https://actuarialcat.github.io/FINA_4350_Mid_term_project/Report_2.pdf).
+For more details, please see the [full article](https://actuarialcat.github.io/FINA_4350_Mid_term_project/Report_2.pdf).
 
