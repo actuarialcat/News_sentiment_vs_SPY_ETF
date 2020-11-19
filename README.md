@@ -1,4 +1,4 @@
-# FINA_4350_Mid_term_project
+# News sentiment vs stock price analysis
 
 This project attempts to predict the performance of SPY ETF using financial news headlines on Reuters webpage on the previous trading day.
 
